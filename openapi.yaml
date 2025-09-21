@@ -1,0 +1,791 @@
+openapi: 3.0.3
+info:
+  title: Accounting MCP API
+  version: "1.0.0"
+  description: |
+    会計 freee データを共通スキーマで提供する MCP サーバーの API 仕様。
+    仕訳帳は `detail` パラメータで `simple` / `standard` / `full` の 3 段階を切り替え可能。
+servers:
+  - url: http://localhost:3000
+paths:
+  /freee/journals:
+    get:
+      summary: 仕訳データ取得
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - in: query
+          name: detail
+          schema:
+            type: string
+            enum: [simple, standard, full]
+            default: standard
+          description: レスポンスの詳細レベルを指定
+      responses:
+        "200":
+          description: 仕訳データレスポンス
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    oneOf:
+                      - type: array
+                        items:
+                          $ref: '#/components/schemas/JournalSimple'
+                      - type: array
+                        items:
+                          $ref: '#/components/schemas/JournalStandard'
+                      - type: array
+                        items:
+                          $ref: '#/components/schemas/JournalFull'
+                  metadata:
+                    $ref: '#/components/schemas/ResponseMetadata'
+  /freee/account_items:
+    get:
+      summary: 勘定科目マスタ取得
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+      responses:
+        "200":
+          description: 勘定科目マスタ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account_items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AccountItem'
+  /freee/partners:
+    get:
+      summary: 取引先マスタ取得
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+      responses:
+        "200":
+          description: 取引先マスタ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  partners:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Partner'
+  /freee/items:
+    get:
+      summary: 品目マスタ取得
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+      responses:
+        "200":
+          description: 品目マスタ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Item'
+  /freee/sections:
+    get:
+      summary: 部門マスタ取得
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+      responses:
+        "200":
+          description: 部門マスタ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Section'
+  /freee/taxes:
+    get:
+      summary: 税区分マスタ取得
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+      responses:
+        "200":
+          description: 税区分マスタ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taxes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tax'
+  /freee/tags:
+    get:
+      summary: メモタグ取得
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+      responses:
+        "200":
+          description: メモタグ一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+  /freee/variance-analysis:
+    get:
+      summary: 増減要因分析
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+        - name: base_start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: base_end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: comparison_start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: comparison_end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: group_by_section
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: 増減分析結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VarianceAnalysisResponse'
+  /freee/monthly-trends:
+    get:
+      summary: 月次推移集計
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - name: group_by_section
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: 月次推移データ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyTrendsResponse'
+  /freee/entry-route-analysis:
+    get:
+      summary: 計上ルート別集計
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - name: group_by_account
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: group_by_partner
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: 計上ルート別集計
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryRouteResponse'
+  /freee/budgets:
+    get:
+      summary: 予算データ取得
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+        - name: fiscal_year
+          in: query
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        "200":
+          description: 予算データ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetResponse'
+    post:
+      summary: 予算データ登録
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetSaveRequest'
+      responses:
+        "201":
+          description: 登録結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetSaveResult'
+  /freee/budget-comparison:
+    get:
+      summary: 予実比較
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - name: group_by
+          in: query
+          schema:
+            type: string
+            enum: [account_item, month]
+      responses:
+        "200":
+          description: 予実比較データ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetComparisonResponse'
+  /freee/partner-yearly-summary:
+    get:
+      summary: 取引先別年間集計
+      parameters:
+        - $ref: '#/components/parameters/CompanyId'
+        - name: fiscal_year
+          in: query
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - name: group_by_account
+          in: query
+          schema:
+            type: boolean
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [amount_desc, amount_asc, name]
+      responses:
+        "200":
+          description: 取引先別年間集計
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerSummaryResponse'
+  /audit/logs:
+    get:
+      summary: 監査ログ取得
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - name: event_type
+          in: query
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: endpoint
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: 監査ログ一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLogEntry'
+                  metadata:
+                    type: object
+  /audit/statistics:
+    get:
+      summary: 監査統計取得
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        "200":
+          description: 監査統計
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditStatisticsResponse'
+  /audit/export:
+    get:
+      summary: 監査ログエクスポート
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - name: event_type
+          in: query
+          schema:
+            type: string
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, csv]
+            default: json
+      responses:
+        "200":
+          description: エクスポートされたログ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogEntry'
+            text/csv:
+              schema:
+                type: string
+  /audit/verify/{id}:
+    get:
+      summary: 監査ログ整合性検証
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 整合性検証結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  log_id:
+                    type: integer
+                  integrity_valid:
+                    type: boolean
+                  verified_at:
+                    type: string
+                    format: date-time
+  /audit/summary/events:
+    get:
+      summary: イベントタイプ別サマリ
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        "200":
+          description: イベント別サマリ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+  /audit/summary/users:
+    get:
+      summary: ユーザー別サマリ
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        "200":
+          description: ユーザー別サマリ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+components:
+  parameters:
+    CompanyId:
+      name: company_id
+      in: query
+      schema:
+        type: string
+      description: freee 事業所 ID。未指定時は環境変数を使用。
+    StartDate:
+      name: start_date
+      in: query
+      schema:
+        type: string
+        format: date
+    EndDate:
+      name: end_date
+      in: query
+      schema:
+        type: string
+        format: date
+  schemas:
+    ResponseMetadata:
+      type: object
+      properties:
+        fetched_at:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum: [freee]
+        company_id:
+          type: string
+        period:
+          type: string
+        detail_level:
+          type: string
+    JournalSimple:
+      type: object
+      properties:
+        source:
+          type: string
+        entryId:
+          type: integer
+        date:
+          type: string
+          format: date
+        debitAccount:
+          type: string
+        creditAccount:
+          type: string
+        amount:
+          type: number
+        memo:
+          type: string
+    JournalStandard:
+      type: object
+      properties:
+        slip_id:
+          type: integer
+        transaction_date:
+          type: string
+          format: date
+        content:
+          type: string
+        debit_items:
+          type: array
+          items:
+            type: object
+            properties:
+              account_item:
+                type: string
+              amount:
+                type: number
+        credit_items:
+          type: array
+          items:
+            type: object
+            properties:
+              account_item:
+                type: string
+              amount:
+                type: number
+        total_amount:
+          type: number
+        entry_line_count:
+          type: integer
+    JournalFull:
+      type: object
+      description: docs/6_仕訳帳完全スキーマ.md に準拠したフルスキーマ
+      additionalProperties: true
+    AccountItem:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        account_group_display_name:
+          type: string
+        account_item_category:
+          type: string
+        normal_balance:
+          type: string
+    Partner:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        active:
+          type: boolean
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+    Section:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+    Tax:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        name_ja:
+          type: string
+        display_category:
+          type: string
+        available:
+          type: boolean
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        shortcut1:
+          type: string
+        shortcut2:
+          type: string
+    VarianceAnalysisResponse:
+      type: object
+      properties:
+        variance_analysis:
+          type: object
+          properties:
+            summary:
+              type: object
+            by_account:
+              type: array
+              items:
+                type: object
+                properties:
+                  account_item_id:
+                    type: integer
+                  variance:
+                    type: number
+        metadata:
+          type: object
+    MonthlyTrendsResponse:
+      type: object
+      properties:
+        monthly_trends:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              total_debit:
+                type: number
+              total_credit:
+                type: number
+        metadata:
+          type: object
+    EntryRouteResponse:
+      type: object
+      properties:
+        entry_routes:
+          type: object
+          properties:
+            summary:
+              type: object
+            by_route:
+              type: array
+              items:
+                type: object
+                properties:
+                  route_type:
+                    type: string
+                  total_amount:
+                    type: number
+        metadata:
+          type: object
+    BudgetSaveRequest:
+      type: object
+      required: [company_id, fiscal_year, budgets]
+      properties:
+        company_id:
+          type: string
+        fiscal_year:
+          type: integer
+        budgets:
+          type: array
+          items:
+            type: object
+            properties:
+              account_item_id:
+                type: integer
+              monthly_budgets:
+                type: object
+                additionalProperties:
+                  type: number
+              annual_budget:
+                type: number
+    BudgetSaveResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        budget_id:
+          type: string
+        summary:
+          type: object
+    BudgetResponse:
+      type: object
+      properties:
+        budget_data:
+          type: object
+          properties:
+            fiscal_year:
+              type: integer
+            period:
+              type: object
+            budgets:
+              type: array
+              items:
+                type: object
+                properties:
+                  account_item_id:
+                    type: integer
+                  account_item_name:
+                    type: string
+                  monthly_budgets:
+                    type: object
+                    additionalProperties:
+                      type: number
+    BudgetComparisonResponse:
+      type: object
+      properties:
+        comparison:
+          type: array
+          items:
+            type: object
+            properties:
+              account_item_id:
+                type: integer
+              budget_amount:
+                type: number
+              actual_amount:
+                type: number
+              variance:
+                type: number
+        summary:
+          type: object
+        metadata:
+          type: object
+    PartnerSummaryResponse:
+      type: object
+      properties:
+        partner_summary:
+          type: array
+          items:
+            type: object
+            properties:
+              partner_id:
+                type: string
+              total_amount:
+                type: number
+              transaction_count:
+                type: integer
+        summary:
+          type: object
+        metadata:
+          type: object
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        event_type:
+          type: string
+        user_id:
+          type: string
+        method:
+          type: string
+        endpoint:
+          type: string
+        response_status:
+          type: integer
+    AuditStatisticsResponse:
+      type: object
+      properties:
+        statistics:
+          type: object
+          properties:
+            summaries:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                  total_requests:
+                    type: integer
+                  unique_users:
+                    type: integer
+            totals:
+              type: object
