@@ -1,0 +1,16 @@
+# Environment files
+.env
+
+# Local credentials and secrets
+.tokens.enc
+.key
+
+# Node dependencies
+node_modules/
+
+# Logs and cache databases
+logs/
+data/*.db
+
+# macOS system files
+.DS_Store
