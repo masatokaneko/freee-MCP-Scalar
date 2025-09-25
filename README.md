@@ -144,6 +144,7 @@ node scripts/export_freee_reports.js \\
 - `trial_bs_full.csv`
 - `journals_generic_v2.csv`
 - `account_code_catalog.csv`（勘定科目コード対照表）
+- 各CSVの用途・カラム構成は `docs/出力データ一覧.md` を参照してください。
 
 CSV をそのまま Google スプレッドシートへ `IMPORTDATA` すれば、サンプルブックの各シートと同じ構造で利用できます。
 - `.env` に設定した `FREEE_ACCESS_TOKEN` / `FREEE_COMPANY_ID` を利用します。トークン期限切れの場合は `scripts/get_token.js` などで更新してください。
