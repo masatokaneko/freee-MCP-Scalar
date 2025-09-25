@@ -182,15 +182,27 @@ router.get('/variance-analysis', async (req, res, next) => {
 
 router.get('/monthly-trends', async (req, res, next) => {
   try {
+    // startMonthとendMonthをstart_dateとend_dateに変換
+    const { startMonth, endMonth, company_id, ...otherParams } = req.query;
+    
     const params = {
-      company_id: req.query.company_id || process.env.FREEE_COMPANY_ID,
-      ...req.query
+      company_id: company_id || process.env.FREEE_COMPANY_ID,
+      start_date: startMonth ? `${startMonth}-01` : undefined,
+      end_date: endMonth ? `${endMonth}-31` : undefined,
+      ...otherParams
     };
     
     if (!params.company_id) {
       return res.status(400).json({
         error: true,
         message: 'company_id is required'
+      });
+    }
+    
+    if (!params.start_date || !params.end_date) {
+      return res.status(400).json({
+        error: true,
+        message: 'startMonth and endMonth are required'
       });
     }
     

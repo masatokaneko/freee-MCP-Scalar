@@ -104,6 +104,22 @@ async function requestToken(provider) {
 export async function getAccessToken(provider) {
   const now = Date.now();
   
+  // In development mode, allow direct reading from environment variables as fallback
+  if (process.env.NODE_ENV === 'development' && !cachedTokens[provider]) {
+    if (provider === 'freee' && process.env.FREEE_ACCESS_TOKEN) {
+      console.log('Using freee token from environment variables (development mode)');
+      cachedTokens[provider] = process.env.FREEE_ACCESS_TOKEN;
+      tokenExpiresAt[provider] = now + 3600 * 1000; // Default 1 hour expiry
+      return process.env.FREEE_ACCESS_TOKEN;
+    }
+    if (provider === 'quickbooks' && process.env.QB_ACCESS_TOKEN) {
+      console.log('Using QuickBooks token from environment variables (development mode)');
+      cachedTokens[provider] = process.env.QB_ACCESS_TOKEN;
+      tokenExpiresAt[provider] = now + 3600 * 1000; // Default 1 hour expiry
+      return process.env.QB_ACCESS_TOKEN;
+    }
+  }
+  
   if (cachedTokens[provider] && tokenExpiresAt[provider]) {
     const bufferTime = REFRESH_BUFFER_SECONDS * 1000;
     if (tokenExpiresAt[provider] - bufferTime > now) {
@@ -121,14 +137,36 @@ export async function initializeTokens() {
   try {
     const storedTokens = await loadSecureTokens();
     
+    // Check for freee tokens
     if (storedTokens.freee?.access_token) {
       cachedTokens.freee = storedTokens.freee.access_token;
       tokenExpiresAt.freee = storedTokens.freee.expires_at || 0;
+    } else if (process.env.FREEE_ACCESS_TOKEN && process.env.FREEE_REFRESH_TOKEN) {
+      // Auto-import from environment variables if no stored tokens
+      console.log('No stored tokens found for freee, importing from .env file...');
+      await storeInitialTokens('freee', {
+        access_token: process.env.FREEE_ACCESS_TOKEN,
+        refresh_token: process.env.FREEE_REFRESH_TOKEN,
+        expires_in: 3600,
+        company_id: process.env.FREEE_COMPANY_ID
+      });
+      console.log('Freee tokens imported from .env file successfully');
     }
     
+    // Check for quickbooks tokens  
     if (storedTokens.quickbooks?.access_token) {
       cachedTokens.quickbooks = storedTokens.quickbooks.access_token;
       tokenExpiresAt.quickbooks = storedTokens.quickbooks.expires_at || 0;
+    } else if (process.env.QB_ACCESS_TOKEN && process.env.QB_REFRESH_TOKEN) {
+      // Auto-import from environment variables if no stored tokens
+      console.log('No stored tokens found for QuickBooks, importing from .env file...');
+      await storeInitialTokens('quickbooks', {
+        access_token: process.env.QB_ACCESS_TOKEN,
+        refresh_token: process.env.QB_REFRESH_TOKEN,
+        expires_in: 3600,
+        company_id: process.env.QB_COMPANY_ID
+      });
+      console.log('QuickBooks tokens imported from .env file successfully');
     }
     
     console.log('Token manager initialized successfully');

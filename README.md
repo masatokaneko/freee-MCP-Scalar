@@ -91,6 +91,76 @@ node server.js
 
 ---
 
+## 🧮 月次試算表レポートの自動生成
+
+freee から対象期間の仕訳を一括取得し、損益計算書科目のみを抽出した月次試算表（JSON / Markdown）を生成するスクリプトを用意しています。
+
+- デフォルト出力は CSV。Google スプレッドシート等にそのまま取り込めます。
+
+```bash
+# 例: 2025年1月分のPL試算表をCSVで出力
+node scripts/generate_pl_report.js --month=2025-01 --output-dir=$HOME/freee-reports
+
+# 任意期間・複数形式（CSV+JSON）で出力
+node scripts/generate_pl_report.js --start=2025-01-01 --end=2025-03-31 --format=csv,json --output-dir=$HOME/freee-reports
+
+# 勘定科目×月のピボットテーブルを追加（CSV）
+node scripts/generate_pl_report.js --month=2025-01 --pivot --output-dir=$HOME/freee-reports
+
+# 取引先別・品目別の月次推移表も同時に出力
+node scripts/generate_pl_report.js --start=2024-12-01 --end=2025-05-31 --group=account,partner,item --pivot --output-dir=$HOME/freee-reports
+```
+
+- 出力先は `FREEE_REPORT_OUTPUT_DIR` 環境変数、または `--output-dir` オプションで指定したパス（未指定時はリポジトリ直下の `private_reports/`）。
+- `--format=` で `csv` / `md` / `json`（複数指定可）を選択。`all` で三形式すべてを出力。
+- `--pivot` を付けると、月を横軸・差額を値としたピボット表を `_pivot_*.csv`（必要に応じて Markdown も）として出力します。
+- `--group=` に `account`（既定）`partner` `item` を指定すると、各軸ごとのレポートが `pl_trial_balance[_partner|_item]_*.csv` として生成されます（複数指定可）。
+- 取引先・品目レポートは勘定科目をキーに内訳を示し、各月で勘定科目合計と一致するか自動検証します（ズレがある場合はコンソールに警告を表示）。
+ - 実行時に勘定科目コード一覧 `account_code_catalog.csv` も併せて出力します（新コード／freeeコードの対照表）。コード体系の詳細は `docs/勘定科目コード体系.md` を参照してください。
+
+---
+
+## 📊 Google Sheets 向けデータエクスポート
+
+`scripts/export_freee_reports.js` は freee のレポート API を呼び出し、Google スプレッドシート「freee Data Getter」テンプレートと互換性のある CSV を生成します。
+
+```bash
+# 例: 期間を指定して主要帳票をまとめて出力
+node scripts/export_freee_reports.js \\
+  --start=2024-12-01 --end=2025-05-31 \\
+  --reports=pl_monthly,pl_sections,trial_pl,trial_bs,journals \\
+  --output-dir=$HOME/freee-reports
+
+# --reports=all で全レポート出力（trial_pl/trial_bs/月次PL/部門・品目・取引先推移/仕訳帳など）
+```
+
+生成される主なファイル例:
+
+- `pl_account_monthly.csv` / `pl_account_pivot.csv`
+- `pl_partner_monthly.csv` / `pl_item_monthly.csv` / `pl_section_monthly.csv`
+- `pl_sections_summary.csv`（部門別 PL 集計）
+- `pl_items_summary.csv`（品目別 PL 集計）
+- `trial_pl_full.csv`（表示タイプ: すべて）
+- `trial_bs_full.csv`
+- `journals_generic_v2.csv`
+- `account_code_catalog.csv`（勘定科目コード対照表）
+
+CSV をそのまま Google スプレッドシートへ `IMPORTDATA` すれば、サンプルブックの各シートと同じ構造で利用できます。
+- `.env` に設定した `FREEE_ACCESS_TOKEN` / `FREEE_COMPANY_ID` を利用します。トークン期限切れの場合は `scripts/get_token.js` などで更新してください。
+
+---
+
+## 🔐 OSS公開時のデータ運用
+
+分析結果や社内固有データはリポジトリに含めず、以下の運用を推奨します。
+
+- デフォルト出力先の `private_reports/` を `.gitignore` に登録済み（コミット対象外）。
+- 外部ディレクトリを使いたい場合は `FREEE_REPORT_OUTPUT_DIR` または `--output-dir=/path/to/private/folder` を指定する。
+- 誤ってコミットしたファイルは `git rm --cached <file>` で追跡を解除し、再度 `.gitignore` を確認する。
+- 公開リポジトリにはスクリプト・ドキュメントのみを含め、分析結果や本番データは別ストレージで管理する。
+
+---
+
 ## 🔎 使い方
 
 ### 1. 仕訳データ取得（通常版）

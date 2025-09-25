@@ -7,8 +7,10 @@ import { initializeAuditLog } from './src/services/auditLog.js';
 import { initializeBudgetStorage } from './src/services/budgetStorage.js';
 import freeeRoutes from './src/routes/freeeRoutes.js';
 import auditRoutes from './src/routes/auditRoutes.js';
+import authRoutes from './src/routes/auth.js';
 
-dotenv.config();
+// Force override environment variables from .env file
+dotenv.config({ override: true });
 
 const app = express();
 app.use(express.json());
@@ -51,6 +53,7 @@ app.get('/health', (req, res) => {
 // -----------------------
 app.use('/freee', freeeRoutes);
 app.use('/audit', auditRoutes);
+app.use('/auth', authRoutes);
 
 // -----------------------
 // Root endpoint
@@ -83,6 +86,11 @@ app.get('/', (req, res) => {
         verify: '/audit/verify/:id',
         summary_by_events: '/audit/summary/events',
         summary_by_users: '/audit/summary/users'
+      },
+      auth: {
+        freee_login: '/auth/freee',
+        status: '/auth/status',
+        manual_token: '/auth/freee/manual (POST)'
       }
     }
   });

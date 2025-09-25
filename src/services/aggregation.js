@@ -8,8 +8,7 @@ export async function getMonthlyTrends(params) {
       company_id, 
       start_date, 
       end_date,
-      visible_tags: 'all',  // freee APIがサポートする詳細度パラメータ
-      visible_ids: 'all'
+      download_type: 'csv'  // csvタイプを使用
     }),
     getAccountItems({ company_id })
   ]);

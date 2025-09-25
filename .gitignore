@@ -1,5 +1,6 @@
 # Environment files
 .env
+.env.test
 
 # Local credentials and secrets
 .tokens.enc
@@ -11,6 +12,11 @@ node_modules/
 # Logs and cache databases
 logs/
 data/*.db
+
+# Local analytics outputs (never commit actual data)
+private_reports/
+Analytics/
+reports/
 
 # macOS system files
 .DS_Store
