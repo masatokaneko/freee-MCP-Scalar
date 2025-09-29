@@ -1,6 +1,5 @@
 # Environment files
 .env
-.env.test
 
 # Local credentials and secrets
 .tokens.enc
